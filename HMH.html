@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión HMH</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .view { display: none; animation: fadeIn 0.5s ease-in-out; }
+        .view.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        .modal-overlay { transition: opacity 0.3s ease; }
+        .modal-container { transition: transform 0.3s ease; }
+        /* Sidebar transition */
+        #sidebar { transition: transform 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Pantalla de Login -->
+    <div id="login-screen" class="flex items-center justify-center h-screen bg-gray-200">
+        <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-lg">
+            <div class="text-center space-y-4">
+                 <img src="https://i.postimg.cc/NMShcK2W/Logo-HMH.png" alt="Logo HMH" class="w-48 mx-auto">
+                <p class="text-gray-600">Bienvenido. Inicia sesión para continuar.</p>
+            </div>
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label for="email" class="text-sm font-medium text-gray-700">Correo Electrónico</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required value="admin@hmh.com" class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#2A3A8D] focus:border-[#2A3A8D]">
+                </div>
+                <div>
+                    <label for="password" class="text-sm font-medium text-gray-700">Contraseña</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required value="password" class="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#2A3A8D] focus:border-[#2A3A8D]">
+                </div>
+                <div>
+                    <button type="submit" class="w-full px-4 py-2 font-semibold text-white bg-[#2A3A8D] rounded-md hover:bg-[#1E2A6A] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2A3A8D]">
+                        Ingresar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Aplicación Principal (oculta por defecto) -->
+    <div id="main-app" class="hidden">
+        <div class="relative min-h-screen md:flex">
+            <!-- Overlay para sidebar móvil -->
+            <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
+            
+            <!-- Barra de Navegación Lateral -->
+            <aside id="sidebar" class="w-64 bg-white shadow-lg flex flex-col flex-shrink-0 fixed inset-y-0 left-0 z-30 transform -translate-x-full md:relative md:translate-x-0">
+                <!-- Sección superior (con scroll si es necesario) -->
+                <div class="flex-1 overflow-y-auto">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <img src="https://i.postimg.cc/NMShcK2W/Logo-HMH.png" alt="Logo HMH" class="w-32 mx-auto">
+                        <button id="close-sidebar-btn" class="md:hidden text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <nav id="main-nav" class="p-2"></nav>
+                </div>
+                <!-- Sección inferior fija (perfil de usuario) -->
+                <div id="user-profile" class="p-4 border-t flex-shrink-0"></div>
+            </aside>
+
+            <!-- Contenido Principal -->
+            <main class="flex-1 flex flex-col overflow-hidden">
+                <!-- Header Móvil -->
+                <header class="md:hidden bg-white shadow-md p-4 flex justify-between items-center">
+                    <button id="open-sidebar-btn">
+                        <i class="fas fa-bars text-xl text-[#2A3A8D]"></i>
+                    </button>
+                    <h1 id="mobile-header-title" class="text-lg font-semibold">Dashboard</h1>
+                </header>
+                <div class="flex-1 p-4 md:p-8 overflow-y-auto">
+                    <!-- Vistas -->
+                    <div id="dashboard" class="view"></div>
+                    <div id="clientes" class="view"></div>
+                    <div id="subclientes" class="view"></div>
+                    <div id="consultores" class="view"></div>
+                    <div id="actividades" class="view"></div>
+                    <div id="ordenes" class="view"></div>
+                    <div id="facturacion" class="view"></div>
+                    <div id="informe" class="view"></div>
+                    <div id="cuentasCobro" class="view"></div>
+                    <div id="usuarios" class="view"></div>
+                </div>
+                 <!-- Pie de Página -->
+                <footer class="text-center text-sm text-gray-500 py-3 border-t bg-white">
+                    Derechos del modelo son de DateNova ajustados a la necesidad de HMH
+                </footer>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Botón de WhatsApp -->
+    <a id="whatsapp-btn" href="#" target="_blank" class="hidden fixed bottom-6 right-6 bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-green-600 transition-transform transform hover:scale-110">
+        <i class="fab fa-whatsapp text-3xl"></i>
+    </a>
+
+    <!-- Modales -->
+    <div id="app-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div class="modal-container bg-white rounded-lg shadow-xl w-full max-w-md transform -translate-y-10"><div class="p-5 border-b flex justify-between items-center"><h3 id="modal-title" class="text-xl font-semibold"></h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button></div><div class="p-5"><form id="modal-form"></form></div></div></div>
+    <div id="confirm-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"><div class="modal-container bg-white rounded-lg shadow-xl w-full max-w-sm transform -translate-y-10"><div class="p-5 text-center"><i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i><h3 id="confirm-title" class="text-lg font-semibold mb-2"></h3><p id="confirm-text" class="text-gray-600 mb-6"></p><div class="flex justify-center space-x-4"><button id="confirm-cancel-btn" class="px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">Cancelar</button><button id="confirm-ok-btn" class="px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Eliminar</button></div></div></div></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let currentRoleKey = '';
+        let currentUserName = '';
+        let viewedConsultantId = 2; // ID del consultor por defecto
+        let chartInstances = {}; // To store chart instances
+
+        // --- ELEMENTOS DEL DOM ---
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        const loginForm = document.getElementById('login-form');
+        const mainNav = document.getElementById('main-nav');
+        const userProfile = document.getElementById('user-profile');
+        const views = document.querySelectorAll('.view');
+        const modal = document.getElementById('app-modal');
+        const modalForm = document.getElementById('modal-form');
+        const modalTitle = document.getElementById('modal-title');
+        const confirmModal = document.getElementById('confirm-modal');
+        const whatsappBtn = document.getElementById('whatsapp-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const openSidebarBtn = document.getElementById('open-sidebar-btn');
+        const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+        const mobileHeaderTitle = document.getElementById('mobile-header-title');
+
+        // --- BASE DE DATOS Y ROLES ---
+        const appData = {
+            usuarios: [
+                { id: 1, nombre: 'Admin', email: 'admin@hmh.com', rol: 'Coordinador', fechaCreacion: '2025-07-01' },
+                { id: 2, nombre: 'Ana L.', email: 'ana.l@hmh.com', rol: 'Analista de Operaciones', fechaCreacion: '2025-07-01' },
+            ],
+            clientes: [ { id: 1, nombre: 'Empresa ABC', rut: '900.123.456-7', responsable: 'Juan Pérez', estado: 'Activo', fechaCreacion: '2025-07-10', fechaActualizacion: '2025-07-20' }, { id: 2, nombre: 'Innovatech Solutions', rut: '800.987.654-3', responsable: 'Maria García', estado: 'Activo', fechaCreacion: '2025-07-11', fechaActualizacion: '2025-07-21' }, { id: 3, nombre: 'Constructora XYZ', rut: '901.234.567-8', responsable: 'Carlos Rodriguez', estado: 'Inactivo', fechaCreacion: '2025-07-12', fechaActualizacion: '2025-07-22' }, ],
+            subclientes: [ { id: 1, nombre: 'Proyecto Alpha', clienteId: 1, contacto: 'Ana Torres', fechaCreacion: '2025-07-13', fechaActualizacion: '2025-07-23' }, { id: 2, nombre: 'Desarrollo Beta', clienteId: 2, contacto: 'Luis Mendoza', fechaCreacion: '2025-07-14', fechaActualizacion: '2025-07-24' }, ],
+            consultores: [ { id: 1, nombre: 'Laura Martinez', especialidad: 'Finanzas', email: 'laura.m@consultores.com', estado: 'Disponible', tarifa: 150, fechaCreacion: '2025-07-05', fechaActualizacion: '2025-07-15' }, { id: 2, nombre: 'Pedro Jimenez', especialidad: 'Tecnología', email: 'pedro.j@consultores.com', estado: 'Asignado', tarifa: 180, fechaCreacion: '2025-07-06', fechaActualizacion: '2025-07-16' }, ],
+            actividades: [ 
+                { id: 1, requerimiento: 'Análisis financiero Q3', clienteId: 1, estado: 'Pendiente por Asignar', prioridad: 'Alta', consultorId: null, soportesSubidos: false, nombreSoporte: null, fechaFinalizacion: null }, 
+                { id: 2, requerimiento: 'Desarrollo de API', clienteId: 2, estado: 'Asignada', prioridad: 'Media', consultorId: 2, soportesSubidos: false, nombreSoporte: null, fechaFinalizacion: null }, 
+                { id: 3, requerimiento: 'Soporte técnico', clienteId: 1, estado: 'En Revisión', prioridad: 'Baja', consultorId: 2, soportesSubidos: true, nombreSoporte: 'informe_soporte.pdf', fechaFinalizacion: '2025-07-20' },
+                { id: 4, requerimiento: 'Consultoría de procesos', clienteId: 3, estado: 'Finalizada', prioridad: 'Media', consultorId: 1, soportesSubidos: true, nombreSoporte: 'avance_procesos.docx', fechaFinalizacion: '2025-07-15' },
+            ],
+            ordenes: [ 
+                { id: 1, actividadId: 2, estado: 'Aprobado', monto: 5000, nombreCuentaCobro: null }, 
+                { id: 2, actividadId: 4, estado: 'Listo para Facturar', monto: 800, nombreCuentaCobro: 'cc_procesos_01.pdf' }, 
+                { id: 3, actividadId: 3, estado: 'Pendiente de Aprobación', monto: 2500, nombreCuentaCobro: null }
+            ],
+            facturacion: [ { id: 1, ordenId: 2, numero: 'FAC-001', estado: 'Pagada' }, { id: 2, ordenId: 1, numero: 'FAC-002', estado: 'Pendiente de Pago' }, ]
+        };
+        const userRoles = {
+            coordinador: { name: 'Admin', title: 'Coordinador', avatar: 'https://placehold.co/40x40/EBF0FF/2A3A8D?text=A', nav: [ { id: 'dashboard', icon: 'fa-tachometer-alt', label: 'Dashboard' }, { id: 'clientes', icon: 'fa-users', label: 'Clientes' }, { id: 'subclientes', icon: 'fa-user-friends', label: 'Subclientes' }, { id: 'consultores', icon: 'fa-user-tie', label: 'Consultores' }, { id: 'actividades', icon: 'fa-tasks', label: 'Actividades' }, { id: 'ordenes', icon: 'fa-file-invoice-dollar', label: 'Aprobaciones' }, { id: 'facturacion', icon: 'fa-receipt', label: 'Facturación' }, { id: 'informe', icon: 'fa-chart-line', label: 'Informe General' }, { id: 'usuarios', icon: 'fa-user-cog', label: 'Gestión de Usuarios' } ], defaultView: 'dashboard' },
+            analista: { name: 'Ana L.', title: 'Analista de Operaciones', avatar: 'https://placehold.co/40x40/FEF2F2/DC2626?text=A', nav: [ { id: 'dashboard', icon: 'fa-tachometer-alt', label: 'Dashboard' }, { id: 'clientes', icon: 'fa-users', label: 'Clientes' }, { id: 'subclientes', icon: 'fa-user-friends', label: 'Subclientes' }, { id: 'consultores', icon: 'fa-user-tie', label: 'Consultores' }, { id: 'actividades', icon: 'fa-tasks', label: 'Registrar Actividad' } ], defaultView: 'actividades' },
+            consultor: { name: 'Consultor', title: 'Consultor', avatar: 'https://placehold.co/40x40/F0FDF4/16A34A?text=C', nav: [ { id: 'actividades', icon: 'fa-tasks', label: 'Mis Actividades' }, { id: 'cuentasCobro', icon: 'fa-file-invoice', label: 'Cuentas de Cobro' } ], defaultView: 'actividades' },
+            contabilidad: { name: 'Sofia V.', title: 'Contabilidad', avatar: 'https://placehold.co/40x40/FFFBEB/F59E0B?text=S', nav: [ { id: 'dashboard', icon: 'fa-tachometer-alt', label: 'Resumen' }, { id: 'facturacion', icon: 'fa-receipt', label: 'Facturas' }, { id: 'ordenes', icon: 'fa-file-invoice-dollar', label: 'Ver Órdenes' }, { id: 'actividades', icon: 'fa-tasks', label: 'Trazabilidad Financiera' } ], defaultView: 'facturacion' }
+        };
+
+        // --- LÓGICA DE LOGIN Y LOGOUT ---
+        const handleLogin = (e) => { e.preventDefault(); loginScreen.classList.add('hidden'); mainApp.classList.remove('hidden'); whatsappBtn.classList.remove('hidden'); initializeApp(); };
+        window.handleLogout = () => { mainApp.classList.add('hidden'); loginScreen.classList.remove('hidden'); whatsappBtn.classList.add('hidden'); mainNav.innerHTML = ''; userProfile.innerHTML = ''; };
+        loginForm.addEventListener('submit', handleLogin);
+
+        // --- LÓGICA DE LA APLICACIÓN PRINCIPAL ---
+        const initializeApp = () => { 
+            renderAll(); 
+            switchUserRole('coordinador'); 
+            // Mobile sidebar controls
+            openSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarOverlay.classList.remove('hidden');
+            });
+            closeSidebarBtn.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            });
+            sidebarOverlay.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            });
+        };
+
+        // --- LÓGICA DE MODALES ---
+        window.openModal = (title, formFields, handleSubmit, initialData = {}) => {
+            modalTitle.textContent = title;
+            modalForm.innerHTML = formFields.map(field => {
+                const value = initialData[field.name] || '';
+                if (field.type === 'select') {
+                    return `<div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><select name="${field.name}" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#2A3A8D] focus:border-[#2A3A8D]">${field.options.map(opt => `<option value="${opt.value}" ${opt.value == value ? 'selected' : ''}>${opt.label}</option>`).join('')}</select></div>`;
+                }
+                 if (field.type === 'file') {
+                    return `<div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><input type="file" name="${field.name}" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#EBF0FF] file:text-[#2A3A8D] hover:file:bg-[#D8E1FF]"></div>`;
+                }
+                return `<div class="mb-4"><label class="block text-sm font-medium text-gray-700 mb-1">${field.label}</label><input type="${field.type || 'text'}" name="${field.name}" value="${value}" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#2A3A8D] focus:border-[#2A3A8D]"></div>`;
+            }).join('') + '<button type="submit" class="w-full bg-[#2A3A8D] text-white py-2 px-4 rounded-md hover:bg-[#1E2A6A]">Guardar</button>';
+            
+            modalForm.onsubmit = (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = {};
+                for (let [key, value] of formData.entries()) {
+                    if (value instanceof File) {
+                        data[key] = value.name;
+                    } else {
+                        data[key] = value;
+                    }
+                }
+                handleSubmit(data);
+                closeModal();
+            };
+            modal.classList.remove("hidden");
+            setTimeout(() => { modal.querySelector(".modal-container").classList.remove("-translate-y-10") }, 10);
+        };
+        window.closeModal=()=>{modal.querySelector(".modal-container").classList.add("-translate-y-10"),modal.classList.add("hidden")};
+        window.showConfirmModal=(t,o,n)=>{document.getElementById("confirm-title").textContent=t,document.getElementById("confirm-text").textContent=o,confirmModal.classList.remove("hidden");const e=document.getElementById("confirm-ok-btn"),l=document.getElementById("confirm-cancel-btn"),c=e.cloneNode(!0);e.parentNode.replaceChild(c,e),c.addEventListener("click",()=>{n(),closeConfirmModal()}),l.onclick=closeConfirmModal};
+        const closeConfirmModal=()=>confirmModal.classList.add("hidden");
+
+        // --- LÓGICA DE RENDERIZADO ---
+        const renderers={
+            dashboard:()=>{
+                const dashboardEl = document.getElementById("dashboard");
+                dashboardEl.innerHTML = `
+                    <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+                    <!-- Resumen General -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><i class="fas fa-users text-3xl text-[#2A3A8D]"></i><div class="ml-4"><p class="text-gray-500">Clientes</p><p id="card-clientes" class="text-2xl font-bold">0</p></div></div></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><i class="fas fa-tasks text-3xl text-green-500"></i><div class="ml-4"><p class="text-gray-500">Actividades Pendientes</p><p id="card-actividades" class="text-2xl font-bold">0</p></div></div></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><i class="fas fa-user-tie text-3xl text-purple-500"></i><div class="ml-4"><p class="text-gray-500">Consultores</p><p id="card-consultores" class="text-2xl font-bold">0</p></div></div></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><div class="flex items-center"><i class="fas fa-file-invoice-dollar text-3xl text-[#F2B705]"></i><div class="ml-4"><p class="text-gray-500">Facturas Pendientes</p><p id="card-facturas" class="text-2xl font-bold">0</p></div></div></div>
+                    </div>
+                    <!-- Filtros -->
+                    <div class="bg-white p-4 rounded-lg shadow mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div><label for="filter-start-date" class="text-sm font-medium">Fecha Inicio</label><input type="date" id="filter-start-date" class="w-full p-2 border rounded-md mt-1"></div>
+                            <div><label for="filter-end-date" class="text-sm font-medium">Fecha Fin</label><input type="date" id="filter-end-date" class="w-full p-2 border rounded-md mt-1"></div>
+                            <div><label for="filter-client" class="text-sm font-medium">Cliente</label><select id="filter-client" class="w-full p-2 border rounded-md mt-1"></select></div>
+                            <div><label for="filter-consultant" class="text-sm font-medium">Consultor</label><select id="filter-consultant" class="w-full p-2 border rounded-md mt-1"></select></div>
+                        </div>
+                    </div>
+                    <!-- Gráficos y Tablas -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white p-6 rounded-lg shadow"><h2 class="text-xl font-semibold mb-4">Actividades por Consultor</h2><div class="h-64"><canvas id="consultant-chart"></canvas></div><div id="consultant-table" class="mt-4"></div></div>
+                        <div class="bg-white p-6 rounded-lg shadow"><h2 class="text-xl font-semibold mb-4">Actividades por Cliente</h2><div class="h-64"><canvas id="client-chart"></canvas></div><div id="client-table" class="mt-4"></div></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow mt-8"><h2 class="text-xl font-semibold mb-4">Actividades Finalizadas por Fecha</h2><div class="h-64"><canvas id="date-chart"></canvas></div><div id="date-table" class="mt-4"></div></div>
+                `;
+                setupDashboard();
+            },
+            clientes:()=>{const t=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Gestión de Clientes</h1><button onclick="actions.clientes.create()" class="bg-[#2A3A8D] text-white px-4 py-2 rounded-lg hover:bg-[#1E2A6A] flex items-center"><i class="fas fa-plus mr-2"></i>Crear Cliente</button></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Nombre</th><th class="p-3">Estado</th><th class="p-3">Fecha Creación</th><th class="p-3">Última Actualización</th><th class="p-3 text-center">Acciones</th></tr></thead><tbody>${appData.clientes.map(t=>`<tr><td class="p-3">${t.nombre}</td><td class="p-3"><span class="px-2 py-1 rounded-full text-sm ${"Activo"===t.estado?"bg-green-200 text-green-800":"bg-red-200 text-red-800"}">${t.estado}</span></td><td class="p-3">${t.fechaCreacion}</td><td class="p-3">${t.fechaActualizacion}</td><td class="p-3 text-center"><button onclick="actions.clientes.update(${t.id})" class="text-blue-500 hover:text-blue-700 mx-2"><i class="fas fa-pencil"></i></button><button onclick="actions.clientes.delete(${t.id})" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash"></i></button></td></tr>`).join("")}</tbody></table></div></div>`;document.getElementById("clientes").innerHTML=t},
+            subclientes:()=>{const t=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Gestión de Subclientes</h1><button onclick="actions.subclientes.create()" class="bg-[#2A3A8D] text-white px-4 py-2 rounded-lg hover:bg-[#1E2A6A] flex items-center"><i class="fas fa-plus mr-2"></i>Crear Subcliente</button></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Nombre</th><th class="p-3">Cliente Principal</th><th class="p-3">Fecha Creación</th><th class="p-3">Última Actualización</th><th class="p-3 text-center">Acciones</th></tr></thead><tbody>${appData.subclientes.map(t=>`<tr><td class="p-3">${t.nombre}</td><td class="p-3">${appData.clientes.find(o=>o.id===t.clienteId)?.nombre||"N/A"}</td><td class="p-3">${t.fechaCreacion}</td><td class="p-3">${t.fechaActualizacion}</td><td class="p-3 text-center"><button onclick="actions.subclientes.update(${t.id})" class="text-blue-500 hover:text-blue-700 mx-2"><i class="fas fa-pencil"></i></button><button onclick="actions.subclientes.delete(${t.id})" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash"></i></button></td></tr>`).join("")}</tbody></table></div></div>`;document.getElementById("subclientes").innerHTML=t},
+            consultores:()=>{const t=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Gestión de Consultores</h1><button onclick="actions.consultores.create()" class="bg-[#2A3A8D] text-white px-4 py-2 rounded-lg hover:bg-[#1E2A6A] flex items-center"><i class="fas fa-plus mr-2"></i>Añadir Consultor</button></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Nombre</th><th class="p-3">Tarifa (USD/hr)</th><th class="p-3">Fecha Creación</th><th class="p-3">Última Actualización</th><th class="p-3 text-center">Acciones</th></tr></thead><tbody>${appData.consultores.map(t=>`<tr><td class="p-3">${t.nombre}</td><td class="p-3">$${t.tarifa}</td><td class="p-3">${t.fechaCreacion}</td><td class="p-3">${t.fechaActualizacion}</td><td class="p-3 text-center"><button onclick="actions.consultores.update(${t.id})" class="text-blue-500 hover:text-blue-700 mx-2"><i class="fas fa-pencil"></i></button><button onclick="actions.consultores.delete(${t.id})" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash"></i></button></td></tr>`).join("")}</tbody></table></div></div>`;document.getElementById("consultores").innerHTML=t},
+            usuarios:()=>{const t=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Gestión de Usuarios</h1><button onclick="actions.usuarios.create()" class="bg-[#2A3A8D] text-white px-4 py-2 rounded-lg hover:bg-[#1E2A6A] flex items-center"><i class="fas fa-plus mr-2"></i>Crear Usuario</button></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Nombre</th><th class="p-3">Email</th><th class="p-3">Rol</th><th class="p-3">Fecha Creación</th><th class="p-3 text-center">Acciones</th></tr></thead><tbody>${appData.usuarios.map(t=>`<tr><td class="p-3">${t.nombre}</td><td class="p-3">${t.email}</td><td class="p-3">${t.rol}</td><td class="p-3">${t.fechaCreacion}</td><td class="p-3 text-center"><button onclick="actions.usuarios.delete(${t.id})" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash"></i></button></td></tr>`).join("")}</tbody></table></div></div>`;document.getElementById("usuarios").innerHTML=t},
+            actividades:()=>{let content;if(currentRoleKey==='contabilidad'){content=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Trazabilidad Financiera</h1></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Actividad/Requerimiento</th><th class="p-3">Cliente</th><th class="p-3">Orden de Servicio</th><th class="p-3">Factura</th></tr></thead><tbody>${appData.actividades.map(a=>{const t=appData.clientes.find(t=>t.id===a.clienteId),o=appData.ordenes.find(t=>t.actividadId===a.id),n=o?appData.facturacion.find(t=>t.ordenId===o.id):null;return`<tr><td class="p-3">${a.requerimiento}</td><td class="p-3">${t?.nombre||"N/A"}</td><td class="p-3">${o?`ID: ${o.id} ($${o.monto})<br><span class="text-sm text-gray-500">${o.estado}</span>`:"Sin orden"}</td><td class="p-3">${n?`${n.numero}<br><span class="text-sm text-gray-500">${n.estado}</span>`:"Sin factura"}</td></tr>`}).join("")}</tbody></table></div></div>`} else if(currentRoleKey==='consultor'){const o=appData.actividades.filter(o=>o.consultorId===viewedConsultantId);content=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Mis Actividades Asignadas</h1></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Requerimiento</th><th class="p-3">Cliente</th><th class="p-3">Estado</th><th class="p-3 text-center">Acciones</th></tr></thead><tbody>${o.map(a=>{const t=appData.clientes.find(t=>t.id===a.clienteId)?.nombre||"N/A";let o=`<button onclick="actions.actividades.uploadSupport(${a.id})" class="text-blue-500 hover:text-blue-700 mx-2" title="Cargar Soportes"><i class="fas fa-upload"></i></button>`;a.estado!=="Finalizada"&&(o+=`<select onchange="actions.actividades.updateStatus(${a.id}, this.value)" class="w-full p-2 border border-gray-300 rounded-md mt-2"><option value="" disabled selected>Cambiar estado</option><option value="En Contacto">En Contacto</option><option value="En Ejecución">En Ejecución</option><option value="Finalizada">Finalizar</option></select>`);return`<tr><td class="p-3">${a.requerimiento}</td><td class="p-3">${t}</td><td class="p-3">${a.estado}</td><td class="p-3 text-center">${o}</td></tr>`}).join("")||'<tr><td colspan="4" class="p-4 text-center text-gray-500">No tienes actividades asignadas.</td></tr>'}</tbody></table></div></div>`}else{content=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Gestión de Actividades</h1><button onclick="actions.actividades.create()" class="bg-[#2A3A8D] text-white px-4 py-2 rounded-lg hover:bg-[#1E2A6A] flex items-center"><i class="fas fa-plus mr-2"></i>Registrar Actividad</button></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Requerimiento</th><th class="p-3">Cliente</th><th class="p-3">Consultor</th><th class="p-3">Estado</th><th class="p-3 text-center">Acciones</th></tr></thead><tbody>${appData.actividades.map(a=>{const t=appData.clientes.find(t=>t.id===a.clienteId)?.nombre||"N/A",o=appData.consultores.find(t=>t.id===a.consultorId)?.nombre||"Sin asignar";let n="";a.estado==="Pendiente por Asignar"?n=`<button onclick="actions.actividades.assign(${a.id})" class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600">Asignar</button>`:a.estado==="En Revisión"?n=`<button onclick="window.showView('ordenes')" class="bg-purple-500 text-white px-3 py-1 rounded-md text-sm hover:bg-purple-600">Revisar</button>`:n=`<button onclick="actions.actividades.delete(${a.id})" class="text-red-500 hover:text-red-700 mx-2"><i class="fas fa-trash"></i></button>`;const e=a.soportesSubidos?`<i class="fas fa-paperclip text-gray-500 ml-2" title="Soporte: ${a.nombreSoporte || 'Archivo subido'}"></i>`:"";return`<tr><td class="p-3">${a.requerimiento}${e}</td><td class="p-3">${t}</td><td class="p-3">${o}</td><td class="p-3">${a.estado}</td><td class="p-3 text-center">${n}</td></tr>`}).join("")}</tbody></table></div></div>`}document.getElementById("actividades").innerHTML=content},
+            ordenes:()=>{let content;const t=currentRoleKey==='coordinador';content=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">${t?"Aprobación de Órdenes":"Órdenes de Servicio"}</h1></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">ID Orden</th><th class="p-3">Actividad</th><th class="p-3">Monto</th><th class="p-3">Estado</th>${t?'<th class="p-3 text-center">Acciones</th>':""}</tr></thead><tbody>${appData.ordenes.map(o=>{const n=appData.actividades.find(t=>t.id===o.actividadId)?.requerimiento||"N/A";let e="";if(t){o.estado==="Pendiente de Aprobación"?e=`<button onclick="actions.ordenes.updateStatus(${o.id}, 'Aprobado')" class="bg-green-500 text-white px-3 py-1 rounded-md text-sm hover:bg-green-600 mr-2">Aprobar</button><button onclick="actions.ordenes.updateStatus(${o.id}, 'Requiere Ajuste')" class="bg-yellow-500 text-white px-3 py-1 rounded-md text-sm hover:bg-yellow-600">Ajuste</button>`:o.estado==="Aprobado"&&(e=`<button onclick="actions.ordenes.updateStatus(${o.id}, 'Listo para Facturar')" class="bg-[#2A3A8D] text-white px-3 py-1 rounded-md text-sm hover:bg-[#1E2A6A]">Solicitar Factura</button>`)}const a=o.nombreCuentaCobro?`<i class="fas fa-paperclip text-gray-500 ml-2" title="Cuenta de Cobro: ${o.nombreCuentaCobro}"></i>`:"";return`<tr><td class="p-3">${o.id}</td><td class="p-3">${n}${a}</td><td class="p-3">$${o.monto}</td><td class="p-3">${o.estado}</td>${t?`<td class="p-3 text-center">${e}</td>`:""}</tr>`}).join("")}</tbody></table></div></div>`;document.getElementById("ordenes").innerHTML=content},
+            facturacion:()=>{const t=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Gestión de Facturación</h1>${currentRoleKey==='contabilidad'?`<button onclick="alert('Funcionalidad para enlazar con SIIGO no implementada en esta demo.')" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center"><i class="fas fa-link mr-2"></i>Enlazar con SIIGO</button>`:""}</div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3"># Factura</th><th class="p-3">Orden ID</th><th class="p-3">Cliente</th><th class="p-3">Estado</th>${currentRoleKey==='contabilidad'?'<th class="p-3 text-center">Acciones</th>':""}</tr></thead><tbody>${appData.facturacion.map(t=>{const o=appData.ordenes.find(o=>o.id===t.ordenId),n=o?appData.actividades.find(t=>t.id===o.actividadId):null,e=n?appData.clientes.find(t=>t.id===n.clienteId):null,a=t.estado==="Pagada"?"bg-green-200 text-green-800":t.estado==="Rechazada"?"bg-red-200 text-red-800":"bg-yellow-200 text-yellow-800";return`<tr><td class="p-3">${t.numero}</td><td class="p-3">${t.ordenId}</td><td class="p-3">${e?.nombre||"N/A"}</td><td class="p-3"><span class="px-2 py-1 rounded-full text-sm ${a}">${t.estado}</span></td>${currentRoleKey==='contabilidad'?`<td class="p-3 text-center">${t.estado==="Pendiente de Pago"?`<button onclick="actions.facturacion.updateStatus(${t.id}, 'Pagada')" class="text-green-500 hover:text-green-700 mx-1" title="Marcar como Pagada"><i class="fas fa-check-circle"></i></button><button onclick="actions.facturacion.updateStatus(${t.id}, 'Rechazada')" class="text-red-500 hover:text-red-700 mx-1" title="Marcar como Rechazada"><i class="fas fa-times-circle"></i></button>`:`<button onclick="actions.facturacion.updateStatus(${t.id}, 'Pendiente de Pago')" class="text-gray-500 hover:text-gray-700 mx-1" title="Revertir a Pendiente"><i class="fas fa-undo"></i></button>`}</td>`:""}</tr>`}).join("")}</tbody></table></div></div>`;document.getElementById("facturacion").innerHTML=t},
+            informe:()=>{const t=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Informe General de Trazabilidad</h1></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">Actividad</th><th class="p-3">Estado Actividad</th><th class="p-3">Estado Orden</th><th class="p-3">Estado Factura</th></tr></thead><tbody>${appData.actividades.map(t=>{const o=appData.ordenes.find(o=>o.actividadId===t.id),n=o?appData.facturacion.find(t=>t.ordenId===o.id):null;return`<tr><td class="p-3">${t.requerimiento}</td><td class="p-3">${t.estado}</td><td class="p-3">${o?.estado||"N/A"}</td><td class="p-3">${n?.estado||"N/A"}</td></tr>`}).join("")}</tbody></table></div></div>`;document.getElementById("informe").innerHTML=t},
+            cuentasCobro:()=>{const o=appData.ordenes.filter(o=>{const n=appData.actividades.find(t=>t.id===o.actividadId);return n&&n.consultorId===viewedConsultantId&&"Aprobado"===o.estado});const n=`<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">Cargar Cuentas de Cobro</h1></div><div class="bg-white p-6 rounded-lg shadow"><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr class="border-b"><th class="p-3">ID Orden</th><th class="p-3">Actividad</th><th class="p-3">Monto</th><th class="p-3 text-center">Acciones</th></tr></thead><tbody>${o.map(t=>{const o=appData.actividades.find(o=>o.id===t.actividadId)?.requerimiento||"N/A";return`<tr><td class="p-3">${t.id}</td><td class="p-3">${o}</td><td class="p-3">$${t.monto}</td><td class="p-3 text-center"><button onclick="actions.cuentasCobro.cargar(${t.id})" class="bg-[#2A3A8D] text-white px-3 py-1 rounded-md text-sm hover:bg-[#1E2A6A]">Cargar Cuenta</button></td></tr>`}).join("")||'<tr><td colspan="4" class="p-4 text-center text-gray-500">No tienes órdenes aprobadas para cargar cuenta de cobro.</td></tr>'}</tbody></table></div></div>`;document.getElementById("cuentasCobro").innerHTML=n}
+        };
+        const renderAll=()=>Object.values(renderers).forEach(t=>t());
+
+        // --- LÓGICA DE ACCIONES (CRUD) ---
+        window.actions={
+            usuarios: {
+                create: () => {
+                    const roles = Object.values(userRoles).map(r => ({ value: r.title, label: r.title }));
+                    openModal('Crear Nuevo Usuario', [
+                        { label: 'Nombre Completo', name: 'nombre' },
+                        { label: 'Email', name: 'email', type: 'email' },
+                        { label: 'Rol', name: 'rol', type: 'select', options: roles }
+                    ], data => {
+                        appData.usuarios.push({ id: Date.now(), ...data, fechaCreacion: new Date().toISOString().split('T')[0] });
+                        renderers.usuarios();
+                    });
+                },
+                delete: id => showConfirmModal("Eliminar Usuario", "Esta acción no se puede deshacer.", () => { appData.usuarios = appData.usuarios.filter(u => u.id !== id); renderers.usuarios(); })
+            },
+            clientes:{
+                create:()=>openModal("Crear Nuevo Cliente",[{label:"Nombre Cliente",name:"nombre"},{label:"RUT",name:"rut"},{label:"Responsable",name:"responsable"}],t=>{appData.clientes.push({id:Date.now(),...t,estado:"Activo", fechaCreacion: new Date().toISOString().split('T')[0], fechaActualizacion: new Date().toISOString().split('T')[0]}),renderers.clientes()}),
+                update: id => { 
+                    const client = appData.clientes.find(c => c.id === id); 
+                    if (!client) return; 
+                    openModal('Actualizar Cliente', [
+                        { label: 'Nombre Cliente', name: 'nombre' }, 
+                        { label: 'RUT', name: 'rut' }, 
+                        { label: 'Responsable', name: 'responsable' },
+                        { label: 'Estado', name: 'estado', type: 'select', options: [{value: 'Activo', label: 'Activo'}, {value: 'Inactivo', label: 'Inactivo'}] }
+                    ], data => { 
+                        Object.assign(client, data); 
+                        client.fechaActualizacion = new Date().toISOString().split('T')[0];
+                        renderers.clientes(); 
+                    }, client); 
+                },
+                delete:t=>showConfirmModal("Eliminar Cliente","Esta acción no se puede deshacer.",()=>{appData.clientes=appData.clientes.filter(o=>o.id!==t),renderers.clientes()})
+            },
+            subclientes:{
+                create:()=>openModal("Crear Subcliente",[{label:"Nombre",name:"nombre"},{label:"Cliente Principal",name:"clienteId",type:"select",options:appData.clientes.map(t=>({value:t.id,label:t.nombre}))},{label:"Contacto",name:"contacto"}],t=>{t.clienteId=parseInt(t.clienteId),appData.subclientes.push({id:Date.now(),...t, fechaCreacion: new Date().toISOString().split('T')[0], fechaActualizacion: new Date().toISOString().split('T')[0]}),renderers.subclientes()}),
+                update: id => { const subclient = appData.subclientes.find(s => s.id === id); if (!subclient) return; openModal('Actualizar Subcliente', [{ label: 'Nombre', name: 'nombre' }, { label: 'Cliente Principal', name: 'clienteId', type: 'select', options: appData.clientes.map(c => ({ value: c.id, label: c.nombre })) }, { label: 'Contacto', name: 'contacto' }], data => { data.clienteId = parseInt(data.clienteId); Object.assign(subclient, data); subclient.fechaActualizacion = new Date().toISOString().split('T')[0]; renderers.subclientes(); }, subclient); },
+                delete:t=>showConfirmModal("Eliminar Subcliente","Esta acción no se puede deshacer.",()=>{appData.subclientes=appData.subclientes.filter(o=>o.id!==t),renderers.subclientes()})
+            },
+            consultores:{
+                create:()=>openModal("Añadir Consultor",[{label:"Nombre",name:"nombre"},{label:"Especialidad",name:"especialidad"},{label:"Email",name:"email",type:"email"},{label:"Tarifa (USD/hr)",name:"tarifa",type:"number"}],t=>{appData.consultores.push({id:Date.now(),...t,estado:"Disponible", fechaCreacion: new Date().toISOString().split('T')[0], fechaActualizacion: new Date().toISOString().split('T')[0]}),renderers.consultores()}),
+                update: id => { const consultant = appData.consultores.find(c => c.id === id); if (!consultant) return; openModal('Actualizar Consultor', [{ label: 'Nombre', name: 'nombre' }, { label: 'Especialidad', name: 'especialidad' }, { label: 'Email', name: 'email', type: 'email' }, {label:"Tarifa (USD/hr)",name:"tarifa",type:"number"}], data => { Object.assign(consultant, data); consultant.fechaActualizacion = new Date().toISOString().split('T')[0]; renderers.consultores(); }, consultant); },
+                delete:t=>showConfirmModal("Eliminar Consultor","Esta acción no se puede deshacer.",()=>{appData.consultores=appData.consultores.filter(o=>o.id!==t),renderers.consultores()})
+            },
+            actividades:{
+                create:()=>openModal("Registrar Actividad",[{label:"Requerimiento",name:"requerimiento"},{label:"Cliente",name:"clienteId",type:"select",options:appData.clientes.map(t=>({value:t.id,label:t.nombre}))},{label:"Prioridad",name:"prioridad",type:"select",options:[{value:"Alta",label:"Alta"},{value:"Media",label:"Media"},{value:"Baja",label:"Baja"}]}],t=>{t.clienteId=parseInt(t.clienteId);appData.actividades.push({id:Date.now(),...t,estado:"Pendiente por Asignar",consultorId:null,soportesSubidos:false});renderAll()}),
+                delete:t=>showConfirmModal("Eliminar Actividad","Esta acción no se puede deshacer.",()=>{appData.actividades=appData.actividades.filter(o=>o.id!==t),renderAll()}),
+                assign:t=>{const o=appData.consultores.filter(t=>"Disponible"===t.estado).map(t=>({value:t.id,label:t.nombre}));openModal("Asignar Consultor",[{label:"Consultor",name:"consultorId",type:"select",options:o}],o=>{const n=appData.actividades.find(o=>o.id===t);n&&(n.estado="Asignada",n.consultorId=parseInt(o.consultorId)),renderAll()})},
+                updateStatus:(id, newStatus) => {
+                    const actividad = appData.actividades.find(a => a.id === id);
+                    if (!actividad) return;
+                    if (newStatus === 'Finalizada') {
+                        showConfirmModal('Finalizar Actividad', '¿Confirma que ha subido los soportes obligatorios para finalizar esta tarea?', () => {
+                            actividad.estado = 'En Revisión';
+                            actividad.soportesSubidos = true;
+                            actividad.fechaFinalizacion = new Date().toISOString().split('T')[0];
+                            if (!appData.ordenes.some(o => o.actividadId === id)) {
+                                appData.ordenes.push({
+                                    id: Date.now(),
+                                    actividadId: id,
+                                    estado: 'Pendiente de Aprobación',
+                                    monto: Math.floor(Math.random() * 5000) + 500 // Random amount for demo
+                                });
+                            }
+                            renderAll();
+                        });
+                    } else {
+                        actividad.estado = newStatus;
+                        renderAll();
+                    }
+                },
+                uploadSupport: id => {
+                    openModal('Cargar Soportes', 
+                        [{ label: 'Seleccionar Archivo', name: 'soporte', type: 'file' }], 
+                        (data) => {
+                            const actividad = appData.actividades.find(a => a.id === id);
+                            if (actividad) {
+                                actividad.soportesSubidos = true;
+                                actividad.nombreSoporte = data.soporte || 'documento.pdf'; 
+                                renderAll();
+                            }
+                        }
+                    );
+                }
+            },
+            ordenes:{
+                updateStatus:(id, newStatus) => {
+                    const orden = appData.ordenes.find(o => o.id === id);
+                    if (!orden) return;
+                    orden.estado = newStatus;
+                    if (newStatus === 'Requiere Ajuste') {
+                        const actividad = appData.actividades.find(a => a.id === orden.actividadId);
+                        if (actividad) actividad.estado = 'Requiere Ajuste';
+                    }
+                    if (newStatus === 'Listo para Facturar' && !appData.facturacion.some(f => f.ordenId === id)) {
+                        appData.facturacion.push({
+                            id: Date.now(),
+                            ordenId: id,
+                            numero: `FAC-00${appData.facturacion.length + 1}`,
+                            estado: 'Pendiente de Pago'
+                        });
+                    }
+                    renderAll();
+                }
+            },
+            facturacion:{updateStatus:(id,newStatus)=>{const invoice=appData.facturacion.find(f=>f.id===id);if(invoice){invoice.estado=newStatus;renderAll();}}},
+            cuentasCobro:{
+                cargar: (orderId) => {
+                    openModal('Cargar Cuenta de Cobro', 
+                        [{ label: 'Seleccionar Archivo', name: 'cuenta_cobro', type: 'file' }], 
+                        (data) => {
+                            const orden = appData.ordenes.find(o => o.id === orderId);
+                            if(orden) {
+                                orden.estado = 'Cuenta de cobro radicada';
+                                orden.nombreCuentaCobro = data.cuenta_cobro || 'cuenta_cobro.pdf';
+                                renderAll();
+                            }
+                        }
+                    );
+                }
+            }
+        };
+
+        // --- LÓGICA DE NAVEGACIÓN Y ROLES ---
+        const updateWhatsAppLink = () => {
+            const phone = '573105586071';
+            const message = encodeURIComponent(`Hola soy ${currentUserName} y necesito soporte técnico`);
+            whatsappBtn.href = `https://wa.me/${phone}?text=${message}`;
+        };
+
+        window.showView = (viewId) => {
+            views.forEach(view => view.classList.remove('active'));
+            const targetView = document.getElementById(viewId);
+            if(targetView) {
+                targetView.classList.add('active');
+                const navLink = mainNav.querySelector(`.nav-link[data-view-id="${viewId}"]`);
+                mobileHeaderTitle.textContent = navLink ? navLink.textContent.trim() : 'Dashboard';
+            }
+            mainNav.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.viewId === viewId);
+                link.classList.toggle('bg-[#EBF0FF]', link.dataset.viewId === viewId);
+                link.classList.toggle('text-[#2A3A8D]', link.dataset.viewId === viewId);
+                link.classList.toggle('font-semibold', link.dataset.viewId === viewId);
+            });
+            // Close mobile sidebar on navigation
+            sidebar.classList.add('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+        };
+
+        window.switchUserRole = (roleKey) => {
+            currentRoleKey = roleKey;
+            const role = userRoles[roleKey];
+            if (!role) return;
+
+            mainNav.innerHTML = role.nav.map(item => `<a href="#" class="nav-link block py-2 px-4 text-gray-600 hover:bg-gray-100 transition-colors duration-200 rounded-md" data-view-id="${item.id}" onclick="showView('${item.id}')"><i class="fas ${item.icon} w-6 mr-3"></i>${item.label}</a>`).join('');
+            
+            let profileContent = '';
+            if (roleKey === 'consultor') {
+                const consultant = appData.consultores.find(c => c.id === viewedConsultantId) || { nombre: 'Consultor' };
+                currentUserName = consultant.nombre;
+                profileContent = `
+                    <div class="flex items-center">
+                        <img src="https://placehold.co/40x40/F0FDF4/16A34A?text=${consultant.nombre.charAt(0)}" alt="Avatar" class="rounded-full">
+                        <div class="ml-3">
+                            <p class="font-semibold">${consultant.nombre}</p>
+                            <p class="text-sm text-gray-500">${role.title}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label for="consultant-select" class="block text-sm font-medium text-gray-700">Ver consultor:</label>
+                        <select id="consultant-select" onchange="setViewedConsultant(this.value)" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#2A3A8D] focus:border-[#2A3A8D] sm:text-sm rounded-md">
+                            ${appData.consultores.map(c => `<option value="${c.id}" ${c.id === viewedConsultantId ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            } else {
+                currentUserName = role.name;
+                 profileContent = `
+                    <div class="flex items-center">
+                        <img src="${role.avatar}" alt="Avatar" class="rounded-full">
+                        <div class="ml-3">
+                            <p class="font-semibold">${role.name}</p>
+                            <p class="text-sm text-gray-500">${role.title}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            userProfile.innerHTML = `
+                ${profileContent}
+                <div class="mt-4">
+                    <label for="role-select" class="block text-sm font-medium text-gray-700">Ver como rol:</label>
+                    <select id="role-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#2A3A8D] focus:border-[#2A3A8D] sm:text-sm rounded-md">
+                        ${Object.keys(userRoles).map(key => `
+                            <option value="${key}" ${key === roleKey ? 'selected' : ''}>
+                                ${userRoles[key].title}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                <button onclick="handleLogout()" class="mt-4 w-full text-left text-red-500 hover:text-red-700 font-semibold px-2 py-1"><i class="fas fa-sign-out-alt w-6 mr-2"></i>Cerrar Sesión</button>
+            `;
+            
+            document.getElementById('role-select').addEventListener('change', (e) => {
+                switchUserRole(e.target.value);
+            });
+            
+            updateWhatsAppLink();
+            renderAll(); // Re-render all views to apply role-specific logic
+            showView(role.defaultView);
+        };
+
+        window.setViewedConsultant = (consultantId) => {
+            viewedConsultantId = parseInt(consultantId);
+            switchUserRole('consultor');
+        };
+
+        // --- DASHBOARD LOGIC ---
+        const setupDashboard = () => {
+            const clientFilter = document.getElementById('filter-client');
+            const consultantFilter = document.getElementById('filter-consultant');
+            const startDateFilter = document.getElementById('filter-start-date');
+            const endDateFilter = document.getElementById('filter-end-date');
+
+            clientFilter.innerHTML = '<option value="">Todos los Clientes</option>' + appData.clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+            consultantFilter.innerHTML = '<option value="">Todos los Consultores</option>' + appData.consultores.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+
+            [clientFilter, consultantFilter, startDateFilter, endDateFilter].forEach(el => {
+                el.addEventListener('change', updateDashboardCharts);
+            });
+
+            updateDashboardCharts();
+        };
+
+        const updateDashboardCharts = () => {
+            const clientId = document.getElementById('filter-client').value;
+            const consultantId = document.getElementById('filter-consultant').value;
+            const startDate = document.getElementById('filter-start-date').value;
+            const endDate = document.getElementById('filter-end-date').value;
+
+            let filteredActivities = appData.actividades.filter(act => {
+                const activityDate = new Date(act.fechaFinalizacion);
+                const start = startDate ? new Date(startDate) : null;
+                const end = endDate ? new Date(endDate) : null;
+
+                if(clientId && act.clienteId != clientId) return false;
+                if(consultantId && act.consultorId != consultantId) return false;
+                if(start && activityDate < start) return false;
+                if(end && activityDate > end) return false;
+                
+                return true;
+            });
+            
+            updateDashboardCards(filteredActivities);
+            renderConsultantChart(filteredActivities);
+            renderClientChart(filteredActivities);
+            renderDateChart(filteredActivities);
+        };
+        
+        const updateDashboardCards = (activities) => {
+            const clientIds = new Set(activities.map(a => a.clienteId));
+            document.getElementById('card-clientes').textContent = clientIds.size;
+
+            const pendingActivities = activities.filter(a => a.estado !== 'Finalizada').length;
+            document.getElementById('card-actividades').textContent = pendingActivities;
+
+            const consultantIds = new Set(activities.map(a => a.consultorId).filter(id => id));
+            document.getElementById('card-consultores').textContent = consultantIds.size;
+
+            const activityIds = new Set(activities.map(a => a.id));
+            const relatedOrders = appData.ordenes.filter(o => activityIds.has(o.actividadId));
+            const orderIds = new Set(relatedOrders.map(o => o.id));
+            const pendingInvoices = appData.facturacion.filter(f => orderIds.has(f.ordenId) && f.estado === 'Pendiente de Pago').length;
+            document.getElementById('card-facturas').textContent = pendingInvoices;
+        };
+
+        const renderChart = (canvasId, labels, data, title, tableId) => {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: title,
+                        data: data,
+                        backgroundColor: '#2A3A8D',
+                        borderColor: '#1E2A6A',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Render table
+            const tableEl = document.getElementById(tableId);
+            let tableHTML = '<table class="w-full text-sm text-left mt-4"><thead><tr class="border-b"><th class="p-2">Item</th><th class="p-2">Cantidad</th></tr></thead><tbody>';
+            labels.forEach((label, index) => {
+                tableHTML += `<tr class="border-b"><td class="p-2">${label}</td><td class="p-2">${data[index]}</td></tr>`;
+            });
+            tableHTML += '</tbody></table>';
+            tableEl.innerHTML = tableHTML;
+        };
+
+        const renderConsultantChart = (activities) => {
+            const data = activities.reduce((acc, act) => {
+                if(act.consultorId) {
+                    const consultantName = appData.consultores.find(c => c.id === act.consultorId)?.nombre || 'Desconocido';
+                    acc[consultantName] = (acc[consultantName] || 0) + 1;
+                }
+                return acc;
+            }, {});
+            renderChart('consultant-chart', Object.keys(data), Object.values(data), '# de Actividades', 'consultant-table');
+        };
+
+        const renderClientChart = (activities) => {
+            const data = activities.reduce((acc, act) => {
+                 const clientName = appData.clientes.find(c => c.id === act.clienteId)?.nombre || 'Desconocido';
+                 acc[clientName] = (acc[clientName] || 0) + 1;
+                return acc;
+            }, {});
+            renderChart('client-chart', Object.keys(data), Object.values(data), '# de Actividades', 'client-table');
+        };
+
+        const renderDateChart = (activities) => {
+            const data = activities.filter(a => a.fechaFinalizacion).reduce((acc, act) => {
+                acc[act.fechaFinalizacion] = (acc[act.fechaFinalizacion] || 0) + 1;
+                return acc;
+            }, {});
+            const sortedLabels = Object.keys(data).sort((a,b) => new Date(a) - new Date(b));
+            const sortedData = sortedLabels.map(label => data[label]);
+            renderChart('date-chart', sortedLabels, sortedData, '# de Actividades Finalizadas', 'date-table');
+        };
+
+    });
+    </script>
+</body>
+</html>
